@@ -4,7 +4,11 @@ import javax.swing.JFrame;
 
 import se.miun.distsys.GroupCommuncation;
 import se.miun.distsys.listeners.ChatMessageListener;
+import se.miun.distsys.listeners.JoinMessageListener;
+import se.miun.distsys.listeners.LeaveMessageListener;
 import se.miun.distsys.messages.ChatMessage;
+import se.miun.distsys.messages.JoinMessage;
+import se.miun.distsys.messages.LeaveMessage;
 
 import javax.swing.JButton;
 import javax.swing.JTextPane;
@@ -18,7 +22,7 @@ import javax.swing.JScrollPane;
 
 //Skeleton code for Distributed systems 9hp, DT050A
 
-public class WindowProgram implements ChatMessageListener, ActionListener {
+public class WindowProgram implements ChatMessageListener, JoinMessageListener, LeaveMessageListener, ActionListener {
 
 	JFrame frame;
 	JTextPane txtpnActive = new JTextPane();
@@ -46,6 +50,8 @@ public class WindowProgram implements ChatMessageListener, ActionListener {
 
 		gc = new GroupCommuncation();		
 		gc.setChatMessageListener(this);
+		gc.setJoinMessageListener(this);
+		gc.setLeaveMessageListener(this);
 		System.out.println("Group Communcation Started");
 	}
 
@@ -81,10 +87,11 @@ public class WindowProgram implements ChatMessageListener, ActionListener {
 		frame.getContentPane().add(btnSendChatMessage);
 
 		//Open Window
+		//Set Computer Name
 		frame.addWindowListener(new java.awt.event.WindowAdapter(){
 			public void windowOpened(WindowEvent winEvt){
 				ComputerName = getComputerName();
-				gc.sendChatMessage(ComputerName + " Joined The Chat");
+				gc.sendJoinMessage(ComputerName + " Joined The Chat");
 			}
 
 		});
@@ -93,7 +100,7 @@ public class WindowProgram implements ChatMessageListener, ActionListener {
 		frame.addWindowListener(new java.awt.event.WindowAdapter() {
 			public void windowClosing(WindowEvent winEvt) {
 				gc.shutdown();
-				gc.sendChatMessage(ComputerName + " Left The Chat");
+				gc.sendLeaveMessage(ComputerName + " Left The Chat");
 			}
 		});
 	}
@@ -109,6 +116,17 @@ public class WindowProgram implements ChatMessageListener, ActionListener {
 	public void onIncomingChatMessage(ChatMessage chatMessage) {	
 		txtpnChat.setText(chatMessage.chat + "\n" + txtpnChat.getText());				
 	}
+
+	@Override
+	public void onIncomingJoinMessage(JoinMessage joinMessage) {
+		txtpnChat.setText(joinMessage.chat + "\n" + txtpnChat.getText());
+	}
+
+	@Override
+	public void onIncomingLeaveMessage(LeaveMessage leaveMessage) {
+		txtpnChat.setText(leaveMessage.chat + "\n" + txtpnChat.getText());
+	}
+
 
 	private String getComputerName()
 	{

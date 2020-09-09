@@ -6,7 +6,11 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 
 import se.miun.distsys.listeners.ChatMessageListener;
+import se.miun.distsys.listeners.JoinMessageListener;
+import se.miun.distsys.listeners.LeaveMessageListener;
 import se.miun.distsys.messages.ChatMessage;
+import se.miun.distsys.messages.JoinMessage;
+import se.miun.distsys.messages.LeaveMessage;
 import se.miun.distsys.messages.Message;
 import se.miun.distsys.messages.MessageSerializer;
 
@@ -18,8 +22,10 @@ public class GroupCommuncation {
 	MessageSerializer messageSerializer = new MessageSerializer();
 	
 	//Listeners
-	ChatMessageListener chatMessageListener = null;	
-	
+	ChatMessageListener chatMessageListener = null;
+	JoinMessageListener joinMessageListener = null;
+	LeaveMessageListener leaveMessageListener = null;
+
 	public GroupCommuncation() {			
 		try {
 			runGroupCommuncation = true;				
@@ -58,13 +64,23 @@ public class GroupCommuncation {
 		}
 				
 		private void handleMessage (Message message) {
-			
-			if(message instanceof ChatMessage) {				
-				ChatMessage chatMessage = (ChatMessage) message;				
+
+			if(message instanceof ChatMessage) {
+				ChatMessage chatMessage = (ChatMessage) message;
 				if(chatMessageListener != null){
 					chatMessageListener.onIncomingChatMessage(chatMessage);
 				}
-			} else {				
+			}else if(message instanceof JoinMessage) {
+				JoinMessage joinMessage = (JoinMessage) message;
+				if(joinMessageListener != null){
+					joinMessageListener.onIncomingJoinMessage(joinMessage);
+				}
+			} else if(message instanceof LeaveMessage) {
+				LeaveMessage leaveMessage = (LeaveMessage) message;
+				if(leaveMessageListener != null){
+					leaveMessageListener.onIncomingLeaveMessage(leaveMessage);
+				}
+			} else {
 				System.out.println("Unknown message type");
 			}			
 		}		
@@ -82,8 +98,39 @@ public class GroupCommuncation {
 		}		
 	}
 
+	public void sendJoinMessage(String chat) {
+		try {
+			JoinMessage joinMessage = new JoinMessage(chat);
+			byte[] sendData = messageSerializer.serializeMessage(joinMessage);
+			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
+					InetAddress.getByName("255.255.255.255"), datagramSocketPort);
+			datagramSocket.send(sendPacket);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendLeaveMessage(String chat) {
+		try {
+			LeaveMessage leaveMessage = new LeaveMessage(chat);
+			byte[] sendData = messageSerializer.serializeMessage(leaveMessage);
+			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
+					InetAddress.getByName("255.255.255.255"), datagramSocketPort);
+			datagramSocket.send(sendPacket);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 	public void setChatMessageListener(ChatMessageListener listener) {
 		this.chatMessageListener = listener;		
 	}
-	
+
+	public void setJoinMessageListener(JoinMessageListener listener) {
+		this.joinMessageListener = listener;
+	}
+
+	public void setLeaveMessageListener(LeaveMessageListener listener) {
+		this.leaveMessageListener = listener;
+	}
 }
