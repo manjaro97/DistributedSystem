@@ -16,6 +16,8 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.JScrollPane;
@@ -29,6 +31,7 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 	JTextPane txtpnChat = new JTextPane();
 	JTextPane txtpnMessage = new JTextPane();
 	String ComputerName = new String();
+	ArrayList<String> UserList = new ArrayList<String>();
 	
 	GroupCommuncation gc = null;	
 
@@ -61,12 +64,13 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(new GridLayout(0, 1, 0, 0));
 
-		//Active Clients
+		//Active Users
 		JScrollPane scrollPaneClients = new JScrollPane();
 		frame.getContentPane().add(scrollPaneClients);
 		scrollPaneClients.setViewportView(txtpnActive);
 		txtpnActive.setEditable(false);
-		txtpnActive.setText("--== Active Clients ==--");
+		txtpnActive.setText("--== Active Users ==--");
+
 
 		//Chat Box
 		JScrollPane scrollPaneChat = new JScrollPane();
@@ -86,12 +90,12 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 
 		frame.getContentPane().add(btnSendChatMessage);
 
-		//Open Window
-		//Set Computer Name
+		//Open Window And Set Computer Name
 		frame.addWindowListener(new java.awt.event.WindowAdapter(){
 			public void windowOpened(WindowEvent winEvt){
 				ComputerName = getComputerName();
-				gc.sendJoinMessage(ComputerName + " Joined The Chat");
+				gc.sendJoinMessage(ComputerName);
+				gc.sendChatMessage(ComputerName + " Joined The Chat");
 			}
 
 		});
@@ -100,7 +104,8 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 		frame.addWindowListener(new java.awt.event.WindowAdapter() {
 			public void windowClosing(WindowEvent winEvt) {
 				gc.shutdown();
-				gc.sendLeaveMessage(ComputerName + " Left The Chat");
+				gc.sendChatMessage(ComputerName + " Left The Chat");
+				gc.sendLeaveMessage(ComputerName);
 			}
 		});
 	}
@@ -114,17 +119,29 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 	
 	@Override
 	public void onIncomingChatMessage(ChatMessage chatMessage) {	
-		txtpnChat.setText(chatMessage.chat + "\n" + txtpnChat.getText());				
+		txtpnChat.setText(chatMessage.chat + "\n" + txtpnChat.getText());
 	}
 
 	@Override
 	public void onIncomingJoinMessage(JoinMessage joinMessage) {
-		txtpnChat.setText(joinMessage.chat + "\n" + txtpnChat.getText());
+		txtpnActive.setText(joinMessage.chat + "\n" + txtpnActive.getText());
+		UserList.add(joinMessage.chat);
 	}
 
 	@Override
 	public void onIncomingLeaveMessage(LeaveMessage leaveMessage) {
 		txtpnChat.setText(leaveMessage.chat + "\n" + txtpnChat.getText());
+
+		txtpnActive.setText("");
+		for (int i = 0; i < UserList.size()-1; i++) {
+			if(leaveMessage.chat.equals(UserList.get(i))){
+				UserList.remove(i);
+				i = UserList.size();
+			}
+		}
+		for (int i = 0; i < UserList.size()-1; i++) {
+			txtpnActive.setText(UserList.get(i) + "\n" + txtpnActive.getText());
+		}
 	}
 
 
