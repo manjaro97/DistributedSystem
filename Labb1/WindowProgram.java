@@ -6,9 +6,12 @@ import se.miun.distsys.GroupCommuncation;
 import se.miun.distsys.listeners.ChatMessageListener;
 import se.miun.distsys.listeners.JoinMessageListener;
 import se.miun.distsys.listeners.LeaveMessageListener;
+import se.miun.distsys.listeners.ActivesMessageListener;
 import se.miun.distsys.messages.ChatMessage;
 import se.miun.distsys.messages.JoinMessage;
 import se.miun.distsys.messages.LeaveMessage;
+import se.miun.distsys.messages.ActivesMessage;
+
 
 import javax.swing.JButton;
 import javax.swing.JTextPane;
@@ -17,14 +20,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import javax.swing.JScrollPane;
 
 //Skeleton code for Distributed systems 9hp, DT050A
 
-public class WindowProgram implements ChatMessageListener, JoinMessageListener, LeaveMessageListener, ActionListener {
+public class WindowProgram implements ChatMessageListener, JoinMessageListener, LeaveMessageListener, ActivesMessageListener, ActionListener {
 
 	JFrame frame;
 	JTextPane txtpnActive = new JTextPane();
@@ -32,6 +35,7 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 	JTextPane txtpnMessage = new JTextPane();
 	String ComputerName = new String();
 	ArrayList<String> UserList = new ArrayList<String>();
+	int UserNumber;
 	
 	GroupCommuncation gc = null;	
 
@@ -55,6 +59,7 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 		gc.setChatMessageListener(this);
 		gc.setJoinMessageListener(this);
 		gc.setLeaveMessageListener(this);
+		gc.setActivesMessageListener(this);
 		System.out.println("Group Communcation Started");
 	}
 
@@ -94,8 +99,8 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 		frame.addWindowListener(new java.awt.event.WindowAdapter(){
 			public void windowOpened(WindowEvent winEvt){
 				ComputerName = getComputerName();
-				gc.sendJoinMessage(ComputerName);
-				gc.sendChatMessage(ComputerName + " Joined The Chat");
+				UserNumber = getRandomIntegerBetweenRange();
+				gc.sendJoinMessage(ComputerName+ "_" + UserNumber );
 			}
 
 		});
@@ -104,10 +109,15 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 		frame.addWindowListener(new java.awt.event.WindowAdapter() {
 			public void windowClosing(WindowEvent winEvt) {
 				gc.shutdown();
-				gc.sendChatMessage(ComputerName + " Left The Chat");
-				gc.sendLeaveMessage(ComputerName);
+				gc.sendLeaveMessage(ComputerName+ "_" + UserNumber );
 			}
 		});
+	}
+
+	public static int getRandomIntegerBetweenRange(){
+		Random rand = new Random();
+		int randID = rand.nextInt(10000);
+		return randID;
 	}
 
 	@Override
@@ -124,26 +134,42 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 
 	@Override
 	public void onIncomingJoinMessage(JoinMessage joinMessage) {
+		txtpnChat.setText(joinMessage.chat + " Joined the Chat\n" + txtpnChat.getText());
 		txtpnActive.setText(joinMessage.chat + "\n" + txtpnActive.getText());
 		UserList.add(joinMessage.chat);
+
+		gc.sendActivesMessage(UserList);
+	}
+
+	@Override
+	public void onIncomingActivesMessage(ActivesMessage activesMessage) {
+
+		//txtpnActive.setText(activesMessage.clientList + "\n" + txtpnActive.getText());
+		if(activesMessage.clientList.size() > UserList.size()){
+			UserList.clear();
+			txtpnActive.setText("--== Active Users ==--");
+			for (int i = 0; i < activesMessage.clientList.size(); i++) {
+				UserList.add(activesMessage.clientList.get(i));
+				txtpnActive.setText(UserList.get(i) + "\n" + txtpnActive.getText());
+			}
+		}
 	}
 
 	@Override
 	public void onIncomingLeaveMessage(LeaveMessage leaveMessage) {
-		txtpnChat.setText(leaveMessage.chat + "\n" + txtpnChat.getText());
+		txtpnChat.setText(leaveMessage.chat + " Left The Chat\n" + txtpnChat.getText());
 
-		txtpnActive.setText("");
-		for (int i = 0; i < UserList.size()-1; i++) {
+		txtpnActive.setText("--== Active Users ==--");
+		for (int i = 0; i < UserList.size(); i++) {
 			if(leaveMessage.chat.equals(UserList.get(i))){
 				UserList.remove(i);
 				i = UserList.size();
 			}
 		}
-		for (int i = 0; i < UserList.size()-1; i++) {
+		for (int i = 0; i < UserList.size(); i++) {
 			txtpnActive.setText(UserList.get(i) + "\n" + txtpnActive.getText());
 		}
 	}
-
 
 	private String getComputerName()
 	{

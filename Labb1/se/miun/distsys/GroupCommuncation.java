@@ -4,13 +4,17 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.util.ArrayList;
+import java.util.List;
 
 import se.miun.distsys.listeners.ChatMessageListener;
 import se.miun.distsys.listeners.JoinMessageListener;
 import se.miun.distsys.listeners.LeaveMessageListener;
+import se.miun.distsys.listeners.ActivesMessageListener;
 import se.miun.distsys.messages.ChatMessage;
 import se.miun.distsys.messages.JoinMessage;
 import se.miun.distsys.messages.LeaveMessage;
+import se.miun.distsys.messages.ActivesMessage;
 import se.miun.distsys.messages.Message;
 import se.miun.distsys.messages.MessageSerializer;
 
@@ -25,6 +29,7 @@ public class GroupCommuncation {
 	ChatMessageListener chatMessageListener = null;
 	JoinMessageListener joinMessageListener = null;
 	LeaveMessageListener leaveMessageListener = null;
+	ActivesMessageListener activesMessageListener = null;
 
 	public GroupCommuncation() {			
 		try {
@@ -80,6 +85,11 @@ public class GroupCommuncation {
 				if(leaveMessageListener != null){
 					leaveMessageListener.onIncomingLeaveMessage(leaveMessage);
 				}
+			} else if(message instanceof ActivesMessage) {
+				ActivesMessage activesMessage = (ActivesMessage) message;
+				if(activesMessageListener != null){
+					activesMessageListener.onIncomingActivesMessage(activesMessage);
+				}
 			} else {
 				System.out.println("Unknown message type");
 			}			
@@ -122,6 +132,18 @@ public class GroupCommuncation {
 		}
 	}
 
+	public void sendActivesMessage(List<String> clientList) {
+		try {
+			ActivesMessage activesMessage = new ActivesMessage(clientList);
+			byte[] sendData = messageSerializer.serializeMessage(activesMessage);
+			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
+					InetAddress.getByName("255.255.255.255"), datagramSocketPort);
+			datagramSocket.send(sendPacket);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 	public void setChatMessageListener(ChatMessageListener listener) {
 		this.chatMessageListener = listener;		
 	}
@@ -132,5 +154,9 @@ public class GroupCommuncation {
 
 	public void setLeaveMessageListener(LeaveMessageListener listener) {
 		this.leaveMessageListener = listener;
+	}
+
+	public void setActivesMessageListener(ActivesMessageListener listener) {
+		this.activesMessageListener = listener;
 	}
 }
