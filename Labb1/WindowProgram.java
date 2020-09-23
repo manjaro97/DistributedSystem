@@ -102,7 +102,6 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 				UserNumber = getRandomIntegerBetweenRange();
 				gc.sendJoinMessage(ComputerName+ "_" + UserNumber );
 			}
-
 		});
 
 		//Close Window
@@ -162,7 +161,7 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 		txtpnActive.setText("--== Active Users ==--");
 		for (int i = 0; i < UserList.size(); i++) {
 			if(leaveMessage.chat.equals(UserList.get(i))){
-				UserList.remove(i);
+				UserList.remove(i); //Could be a problem if UserList needs to be ordered
 				i = UserList.size();
 			}
 		}
