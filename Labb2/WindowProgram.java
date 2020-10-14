@@ -33,9 +33,9 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 	JTextPane txtpnActive = new JTextPane();
 	JTextPane txtpnChat = new JTextPane();
 	JTextPane txtpnMessage = new JTextPane();
+	Boolean Connected = true;
 	String ComputerName = "";
 	String UserName = "";
-	//ArrayList<String> UserList = new ArrayList<String>();
 	LinkedHashMap<String, Integer> UserList = new LinkedHashMap<String, Integer>();
 	int UserNumber;
 
@@ -78,7 +78,6 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 		txtpnActive.setEditable(false);
 		txtpnActive.setText("--== Active Users ==--");
 
-
 		//Chat Box
 		JScrollPane scrollPaneChat = new JScrollPane();
 		frame.getContentPane().add(scrollPaneChat);
@@ -94,8 +93,14 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 		JButton btnSendChatMessage = new JButton("Send Chat Message");
 		btnSendChatMessage.addActionListener(this);
 		btnSendChatMessage.setActionCommand("send");
-
 		frame.getContentPane().add(btnSendChatMessage);
+
+		//Disconnect Button
+		JButton btnDisconnect = new JButton("Disconnect/Connect");
+		btnDisconnect.addActionListener(this);
+		btnDisconnect.setActionCommand("Disconnect");
+		frame.getContentPane().add(btnDisconnect);
+
 
 		//Open Window And Set Computer Name
 		frame.addWindowListener(new java.awt.event.WindowAdapter(){
@@ -104,6 +109,9 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 				UserNumber = getRandomIntegerBetweenRange();
 				UserName = ComputerName + "_" + UserNumber;
 				gc.sendJoinMessage(UserName );
+
+				//Set Title
+				frame.setTitle(UserName);
 			}
 		});
 
@@ -127,43 +135,55 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 			UserList.put(UserName, UserList.get(UserName)+1);
 			gc.sendChatMessage(UserNumber + ": " + txtpnMessage.getText(), UserName, UserList);
 		}
+		if (event.getActionCommand().equalsIgnoreCase("Disconnect")) {
+			Connected = !Connected;
+			System.out.println(Connected);
+			if(Connected){
+				frame.setTitle(UserName + " --- Connected");
+			}
+			else{
+				frame.setTitle(UserName + " --- Disconnected");
+			}
+		}
 	}
 
 	@Override
 	public void onIncomingChatMessage(ChatMessage chatMessage) {
-		if(!UserName.equals(chatMessage.user)){
-			UserList.put(UserName, UserList.get(UserName)+1);
-		}
-
-		Integer sumOwn = 0;
-		for(String user : chatMessage.clientList.keySet()){
-			if(!user.equals(UserName) && !user.equals(chatMessage.user)){
-				sumOwn += chatMessage.clientList.get(user);
+		if(Connected){
+			if(!UserName.equals(chatMessage.user)){
+				UserList.put(UserName, UserList.get(UserName)+1);
 			}
-		}
-		Integer sumElse = 0;
-		for(String user : UserList.keySet()){
-			if(!user.equals(UserName) && !user.equals(chatMessage.user)){
-				sumElse += UserList.get(user);
+
+			Integer sumElse = 0;
+			for(String user : chatMessage.clientList.keySet()){
+				if(!user.equals(UserName) && !user.equals(chatMessage.user)){
+					sumElse += chatMessage.clientList.get(user);
+				}
 			}
-		}
-		if(sumOwn != sumElse && sumOwn != 0 && sumElse != 0){
-			System.out.println("Chatlogg is missing or out of order");
-		}
-
-
-		//Write to chat and update list to highest values;
-		txtpnChat.setText(chatMessage.chat + "\n" + txtpnChat.getText());
-		for(String user : chatMessage.clientList.keySet()){
-			if(UserList.get(user) < chatMessage.clientList.get(user)){
-				UserList.put(user, chatMessage.clientList.get(user));
+			Integer sumOwn = 0;
+			for(String user : UserList.keySet()){
+				if(!user.equals(UserName) && !user.equals(chatMessage.user)){
+					sumOwn += UserList.get(user);
+				}
 			}
-		}
+			if(sumOwn < sumElse && sumOwn != 0 && sumElse != 0){
+				System.out.println("Chatlogg is missing or out of order");
+			}
 
-		/*System.out.println("Values are awesome: " + UserNumber);
-		for(String user : UserList.keySet()){
+
+			//Write to chat and update list to highest values;
+			txtpnChat.setText(chatMessage.chat + "\n" + txtpnChat.getText());
+			for(String user : chatMessage.clientList.keySet()){
+				if(UserList.get(user) < chatMessage.clientList.get(user)){
+					UserList.put(user, chatMessage.clientList.get(user));
+				}
+			}
+
+			/*System.out.println("Values are awesome: " + UserNumber);
+			for(String user : UserList.keySet()){
 			System.out.println("User: " + user + " Value: " + UserList.get(user));
-		}*/
+			}*/
+		}
 	}
 
 	@Override
