@@ -19,7 +19,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Random;
 
@@ -33,9 +33,10 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 	JTextPane txtpnActive = new JTextPane();
 	JTextPane txtpnChat = new JTextPane();
 	JTextPane txtpnMessage = new JTextPane();
-	String ComputerName = new String();
-	String UserName = new String();
-	ArrayList<String> UserList = new ArrayList<String>();
+	String ComputerName = "";
+	String UserName = "";
+	//ArrayList<String> UserList = new ArrayList<String>();
+	LinkedHashMap<String, Integer> UserList = new LinkedHashMap<String, Integer>();
 	int UserNumber;
 
 	GroupCommuncation gc = null;
@@ -110,49 +111,76 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 		frame.addWindowListener(new java.awt.event.WindowAdapter() {
 			public void windowClosing(WindowEvent winEvt) {
 				gc.shutdown();
-				gc.sendLeaveMessage(ComputerName+ "_" + UserNumber );
+				gc.sendLeaveMessage(UserName);
 			}
 		});
 	}
 
 	public static int getRandomIntegerBetweenRange(){
 		Random rand = new Random();
-		int randID = rand.nextInt(10000);
-		return randID;
+		return rand.nextInt(10000);
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent event) {
 		if (event.getActionCommand().equalsIgnoreCase("send")) {
-			gc.sendChatMessage(UserNumber + ": " + txtpnMessage.getText());
+			UserList.put(UserName, UserList.get(UserName)+1);
+			gc.sendChatMessage(UserNumber + ": " + txtpnMessage.getText(), UserName, UserList);
 		}
 	}
 
 	@Override
 	public void onIncomingChatMessage(ChatMessage chatMessage) {
+		if(!UserName.equals(chatMessage.user)){
+			UserList.put(UserName, UserList.get(UserName)+1);
+		}
+
+		Integer sumOwn = 0;
+		for(String user : chatMessage.clientList.keySet()){
+			if(!user.equals(UserName) && !user.equals(chatMessage.user)){
+				sumOwn += chatMessage.clientList.get(user);
+			}
+		}
+		Integer sumElse = 0;
+		for(String user : UserList.keySet()){
+			if(!user.equals(UserName) && !user.equals(chatMessage.user)){
+				sumElse += UserList.get(user);
+			}
+		}
+		if(sumOwn != sumElse && sumOwn != 0 && sumElse != 0){
+			System.out.println("Chatlogg is missing or out of order");
+		}
+
+
+		//Write to chat and update list to highest values;
 		txtpnChat.setText(chatMessage.chat + "\n" + txtpnChat.getText());
+		for(String user : chatMessage.clientList.keySet()){
+			if(UserList.get(user) < chatMessage.clientList.get(user)){
+				UserList.put(user, chatMessage.clientList.get(user));
+			}
+		}
+
+		/*System.out.println("Values are awesome: " + UserNumber);
+		for(String user : UserList.keySet()){
+			System.out.println("User: " + user + " Value: " + UserList.get(user));
+		}*/
 	}
 
 	@Override
 	public void onIncomingJoinMessage(JoinMessage joinMessage) {
 		txtpnChat.setText(joinMessage.chat + " Joined the Chat\n" + txtpnChat.getText());
-		txtpnActive.setText(joinMessage.chat + "\n" + txtpnActive.getText());
-		UserList.add(joinMessage.chat);
+
+		AddActivesList(joinMessage.chat);
+
+		UpdateActivesList();
 
 		gc.sendActivesMessage(UserList);
 	}
 
 	@Override
 	public void onIncomingActivesMessage(ActivesMessage activesMessage) {
-
-		//txtpnActive.setText(activesMessage.clientList + "\n" + txtpnActive.getText());
 		if(activesMessage.clientList.size() > UserList.size()){
-			UserList.clear();
-			txtpnActive.setText("--== Active Users ==--");
-			for (int i = 0; i < activesMessage.clientList.size(); i++) {
-				UserList.add(activesMessage.clientList.get(i));
-				txtpnActive.setText(UserList.get(i) + "\n" + txtpnActive.getText());
-			}
+			CopyActivesList(activesMessage.clientList);
 		}
 	}
 
@@ -160,16 +188,37 @@ public class WindowProgram implements ChatMessageListener, JoinMessageListener, 
 	public void onIncomingLeaveMessage(LeaveMessage leaveMessage) {
 		txtpnChat.setText(leaveMessage.chat + " Left The Chat\n" + txtpnChat.getText());
 
+		ReduceActivesList(leaveMessage.chat);
+
+		UpdateActivesList();
+	}
+
+	public void UpdateActivesList(){
 		txtpnActive.setText("--== Active Users ==--");
-		for (int i = 0; i < UserList.size(); i++) {
-			if(leaveMessage.chat.equals(UserList.get(i))){
-				UserList.remove(i); //Could be a problem if UserList needs to be ordered
-				i = UserList.size();
-			}
+		for(String user : UserList.keySet()){
+			txtpnActive.setText(user + "\n" + txtpnActive.getText());
 		}
-		for (int i = 0; i < UserList.size(); i++) {
-			txtpnActive.setText(UserList.get(i) + "\n" + txtpnActive.getText());
+	}
+
+	public void ReduceActivesList(String username){
+		if(UserList.containsKey(username)){
+			UserList.remove(username);
 		}
+		else{
+			System.out.println("User does not exist.");
+		}
+	}
+
+	public void AddActivesList(String username){
+		UserList.put(username, 0);
+	}
+
+	public void CopyActivesList(LinkedHashMap<String, Integer> clientList){
+		UserList.clear();
+		for (String user : clientList.keySet()) {
+			UserList.put(user , 0);
+		}
+		UpdateActivesList();
 	}
 
 	private String getComputerName()

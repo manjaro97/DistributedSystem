@@ -5,6 +5,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import se.miun.distsys.listeners.ChatMessageListener;
@@ -96,9 +97,9 @@ public class GroupCommuncation {
 		}
 	}
 
-	public void sendChatMessage(String chat) {
+	public void sendChatMessage(String chat, String user, LinkedHashMap<String, Integer> clientList) {
 		try {
-			ChatMessage chatMessage = new ChatMessage(chat);
+			ChatMessage chatMessage = new ChatMessage(chat, user, clientList);
 			byte[] sendData = messageSerializer.serializeMessage(chatMessage);
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
 					InetAddress.getByName("255.255.255.255"), datagramSocketPort);
@@ -108,9 +109,9 @@ public class GroupCommuncation {
 		}
 	}
 
-	public void sendJoinMessage(String chat) {
+	public void sendJoinMessage(String user) {
 		try {
-			JoinMessage joinMessage = new JoinMessage(chat);
+			JoinMessage joinMessage = new JoinMessage(user);
 			byte[] sendData = messageSerializer.serializeMessage(joinMessage);
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
 					InetAddress.getByName("255.255.255.255"), datagramSocketPort);
@@ -120,9 +121,9 @@ public class GroupCommuncation {
 		}
 	}
 
-	public void sendLeaveMessage(String chat) {
+	public void sendLeaveMessage(String user) {
 		try {
-			LeaveMessage leaveMessage = new LeaveMessage(chat);
+			LeaveMessage leaveMessage = new LeaveMessage(user);
 			byte[] sendData = messageSerializer.serializeMessage(leaveMessage);
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
 					InetAddress.getByName("255.255.255.255"), datagramSocketPort);
@@ -132,7 +133,7 @@ public class GroupCommuncation {
 		}
 	}
 
-	public void sendActivesMessage(List<String> clientList) {
+	public void sendActivesMessage(LinkedHashMap<String, Integer> clientList) {
 		try {
 			ActivesMessage activesMessage = new ActivesMessage(clientList);
 			byte[] sendData = messageSerializer.serializeMessage(activesMessage);
